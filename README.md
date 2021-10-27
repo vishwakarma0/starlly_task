@@ -1,7 +1,5 @@
 # starlly_task
-#########################################
-steps to install
-########################################
+#########################################steps to install########################################
 
 #Install the virtualenv
 - pip install virtualenv
