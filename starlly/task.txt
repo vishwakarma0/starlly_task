@@ -1,0 +1,19 @@
+Enable AUTH and pagination  for below APIs
+    1.Create a CRUD api for permit and trucks using django DRF
+    2.Filter API which will filter params truck number,device id,license,vehicle group and vehicle type
+    
+    
+    
+    3.A list api with Number of permits taken by the truck in a date range along 
+        with  details of truck with permit numbers
+    
+    
+    
+    4.Create a User model with basic details(name,email,phone number) and create POST/GET api to add and fetch users.(GET request should return only needed fields)
+    5.Login api which will return user basic details and auth token on successful on login and error message on failure
+    6.Generate a CSV file with below reports
+        The number of vehicles registered each month: Group these by installationtype
+        Number of permits given each month by Loading point
+        Number of permits where the quantity transported is more than or equal to 10 units
+        Group the permits by duration of permit (PermitValidTill - PermitStart) as under 6 hours , between 6-10 hours and More than 10hours
+
