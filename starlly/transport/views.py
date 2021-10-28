@@ -7,6 +7,7 @@ from django.shortcuts import render
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework import status, mixins, viewsets, permissions, filters
 from rest_framework.response import Response
+from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from .serializers import *
 from .models import *
 
@@ -22,6 +23,7 @@ class VehicleViewset(viewsets.GenericViewSet,
     serializer_class = VehicleSerializer
     # permission_classes = [permissions.IsAdminUser]
     filter_backends = [filters.SearchFilter]    
+    pagination_class = CustomPagination
     search_fields = ['vehicleNumber','licenseStatus', 'vehicleGroup','vehicleType','installationtype']
 
     def get_queryset(self):
