@@ -71,12 +71,12 @@ class PermitTrackerViewset(viewsets.GenericViewSet,
     search_fields = ['PermitNumber', 'Destination']
 
     @action(detail=False, methods=['get'])
-    def generate_data(self, request, pk=None):
+    def generate_csv(self, request, pk=None):
         """ Get the info via csv """
         queryset = super().get_queryset()
         vehicles = Vehicle.objects.all()
-        startdate = request.GET.get('startdate', '2020-01-01')
-        enddate = request.GET.get('enddate','2022-01-01')
+        startdate = request.GET.get('startdate', '2021-01-01')
+        enddate = request.GET.get('enddate','2021-12-31')
         dates = [startdate, enddate]
         start, end = [datetime.strptime(_, "%Y-%m-%d") for _ in dates]
         dates_header= list(OrderedDict(((start + timedelta(_)).strftime(r"%b-%y"), None) for _ in range((end - start).days)).keys())
@@ -94,8 +94,17 @@ class PermitTrackerViewset(viewsets.GenericViewSet,
         permit_10 = [{dates_header[0]: 'Permit duration >10 hours'}]
         locations = []
         data = []
+
+        loading_locations = result = PermitTracker.objects.values('LoadingLocation').annotate(
+                        counts=Count(
+                        'LoadingLocation'))
+        org_loading_locations = []
+        for location in loading_locations:
+            org_loading_locations.append([{dates_header[0]:location['LoadingLocation']}])
+
         for dIndex, date in enumerate(dates):
             month, year = date.split("-")
+            # print(month, year)
             #Permits where quantitiy >= 10
             queryset_transported = queryset.filter(PermitStart__month = month, PermitStart__year=year, 
                         PermitValidTill__month = month, PermitValidTill__year=year, 
@@ -126,20 +135,14 @@ class PermitTrackerViewset(viewsets.GenericViewSet,
             renewals[0].update({dates_header[dIndex+1] : installations.get('sum_renewal',0)})
 
             #loading location
-            loading_location = result = PermitTracker.objects.values('LoadingLocation').annotate(
+            monthly_loading_location = result = PermitTracker.objects.values('LoadingLocation').annotate(
                         counts=Count(
                         'LoadingLocation',
                         filter=Q(created__month = month, created__year = year)))
-
-            for loc in loading_location:
-                loca = [{dates_header[0]: loc['LoadingLocation']}]
-                flag = True
-                for la in locations:
-                    if la[0]['col_name']==loc['LoadingLocation']:
-                        la[0].update({dates_header[dIndex+1]:loc['counts'] })
-                        flag=False
-                if flag:
-                    locations.append(loca)
+            for location in monthly_loading_location:
+                for org_loc in org_loading_locations:
+                    if org_loc[0]['col_name']==location['LoadingLocation']:
+                        org_loc[0].update({dates_header[dIndex+1]:location['counts'] })
 
             #permit duration
             hours_6 =0
@@ -164,12 +167,21 @@ class PermitTrackerViewset(viewsets.GenericViewSet,
             permit_6_10[0].update({dates_header[dIndex+1] : hours_6_10})
             permit_10[0].update({dates_header[dIndex+1] : hours_10})
 
+        
         data.append(quantity_transported)
+        data.append([{dates_header[0]:""}])
+        data.append([{dates_header[0]:"Vehicles Registered"}])
         data.append(vehicles_registered)
+        data.append([{dates_header[0]:""}])
+        data.append([{dates_header[0]:"Installations"}])
         data.append(new_installations)
         data.append(migrations)
         data.append(renewals)
-        data.append(locations)
+        data.append([{dates_header[0]:""}])
+        data.append([{dates_header[0]:"Permits given  by Loading point"}])
+        data.append(org_loading_locations)
+        data.append([{dates_header[0]:""}])
+        data.append([{dates_header[0]:"Permits Limits w.r.t time"}])
         data.append(permit_6)
         data.append(permit_6_10)
         data.append(permit_10)

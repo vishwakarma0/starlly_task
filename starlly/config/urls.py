@@ -30,7 +30,7 @@ urlpatterns = [
 # transport/permits/  Permit Tracker CRUD
 # transport/vehicles/?search=value searh/filter
 # transport/vehicles/?vehicleGroup=DMG&vehicleType=Lorry&installationtype=Migration nested filter
-# transport/permits/generate_data  Download CSgenerate_data
+# transport/permits/generate_csv  Download CSgenerate_data
 
 ##loading data via management
 # python manage.py load_vehicle vehicle_file.csvfile
