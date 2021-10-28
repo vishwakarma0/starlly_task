@@ -21,7 +21,7 @@ class VehicleViewset(viewsets.GenericViewSet,
     """ Vehicle Viewset for Vehicle CRUD """
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
-    # permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]    
     pagination_class = CustomPagination
     search_fields = ['vehicleNumber','licenseStatus', 'vehicleGroup','vehicleType','installationtype']
@@ -67,7 +67,8 @@ class PermitTrackerViewset(viewsets.GenericViewSet,
     """ Viewset for Permit Tracker Model """
     queryset = PermitTracker.objects.all()
     serializer_class = PermitTrackerSerializer
-    filter_backends = [filters.SearchFilter]    
+    filter_backends = [filters.SearchFilter]  
+    permission_classes = [permissions.IsAuthenticated]
     search_fields = ['PermitNumber', 'Destination']
 
     @action(detail=False, methods=['get'])
