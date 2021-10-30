@@ -4,12 +4,18 @@ from collections import OrderedDict
 from django.db.models import Avg, Count, Min, Sum, Q, Prefetch
 from django.http import FileResponse
 from django.shortcuts import render
+from django.conf import settings
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+from django.views.decorators.cache import cache_page
+from django.core.cache import cache
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework import status, mixins, viewsets, permissions, filters
 from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 from .serializers import *
 from .models import *
+
+CACHE_TTL = getattr(settings ,'CACHE_TTL' , DEFAULT_TIMEOUT)
 
 # Create your views here.
 class VehicleViewset(viewsets.GenericViewSet,
@@ -21,7 +27,7 @@ class VehicleViewset(viewsets.GenericViewSet,
     """ Vehicle Viewset for Vehicle CRUD """
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]    
     pagination_class = CustomPagination
     search_fields = ['vehicleNumber','licenseStatus', 'vehicleGroup','vehicleType','installationtype']
@@ -48,10 +54,14 @@ class VehicleViewset(viewsets.GenericViewSet,
         queryset = super().get_queryset()
         startdate = request.GET.get('startdate', '2020-01-01')
         enddate = request.GET.get('enddate','2021-12-31')
+
+        permits = PermitTracker.objects.filter(PermitStart__gte=startdate,
+                PermitValidTill__lte = enddate)
         queryset = queryset.prefetch_related(
-            Prefetch('permit_vehicles', queryset=PermitTracker.objects.filter(PermitStart__gte=startdate,
-                PermitValidTill__lte = enddate),
+            Prefetch('permit_vehicles', queryset=permits,
                 to_attr='filtered_permit_vehicles'))
+
+
         paginator = VehiclePermitPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
         serializer = VehiclePermitsSerializer(queryset, many=True, context={'request': request})
@@ -61,15 +71,32 @@ class VehicleViewset(viewsets.GenericViewSet,
 class PermitTrackerViewset(viewsets.GenericViewSet,
         mixins.ListModelMixin,
         mixins.CreateModelMixin,
-        mixins.RetrieveModelMixin,
         mixins.UpdateModelMixin,
         mixins.DestroyModelMixin):
     """ Viewset for Permit Tracker Model """
-    queryset = PermitTracker.objects.all()
+    queryset = PermitTracker.objects.all().order_by('id')
     serializer_class = PermitTrackerSerializer
     filter_backends = [filters.SearchFilter]  
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAuthenticated]
     search_fields = ['PermitNumber', 'Destination']
+
+    def retrieve(self, request, pk=None):
+        queryset = super().get_queryset()
+        print(dir(cache))
+        print(cache.__dict__)
+        if cache.get(pk):
+            print("DATA COMING FROM CACHE")
+            permit = cache.get(pk)
+        else:
+            print("data from Db")
+            permit = queryset.get(id=pk)
+            cache.set(pk, permit)
+        serializer = PermitTrackerSerializer(permit)
+        return Response(serializer.data)
+
+
+
+
 
     @action(detail=False, methods=['get'])
     def generate_csv(self, request, pk=None):
